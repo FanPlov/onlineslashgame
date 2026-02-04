@@ -121,7 +121,13 @@ const App: React.FC = () => {
       } else if (data.type === 'PLAYER_DISCONNECT') {
         alert("Opponent Disconnected");
         setStatus(GameStatus.MENU);
+        onlineManager.clean();
       }
+    });
+
+    onlineManager.onError((err) => {
+        alert(err);
+        setIsWaitingForOpponent(false);
     });
 
     return () => {
@@ -151,23 +157,33 @@ const App: React.FC = () => {
     setShowOnlineMenu(true);
     setMode(GameMode.PVP);
     setIsOnline(true);
+    setHostId(''); // Clear previous ID
     
     if (type === 'HOST') {
-      const id = await onlineManager.init();
-      setHostId(id);
-      setMyPlayer(Player.ONE); // Host is always P1
-      setIsWaitingForOpponent(true);
+      try {
+        const id = await onlineManager.init();
+        setHostId(id);
+        setMyPlayer(Player.ONE); // Host is always P1
+        setIsWaitingForOpponent(true);
+      } catch (e) {
+        alert("Failed to connect to online server. Try again later.");
+        setShowOnlineMenu(false);
+      }
     } else {
-      await onlineManager.init();
-      setMyPlayer(Player.TWO); // Joiner is always P2
+      try {
+        await onlineManager.init();
+        setMyPlayer(Player.TWO); // Joiner is always P2
+      } catch (e) {
+        alert("Failed to connect to online server.");
+        setShowOnlineMenu(false);
+      }
     }
   };
 
   const joinGame = () => {
     if (joinCode) {
       onlineManager.connectTo(joinCode);
-      setShowOnlineMenu(false);
-      setStatus(GameStatus.PLAYING);
+      // Wait for onConnect callback to switch status
       // Flip board for P2 so they see themselves at bottom by default
       setIsFlipped(true);
     }
@@ -178,6 +194,8 @@ const App: React.FC = () => {
     if (isOnline) {
       onlineManager.destroy();
       setIsOnline(false);
+      setShowOnlineMenu(false);
+      setJoinCode('');
     }
   };
 
@@ -386,7 +404,7 @@ const App: React.FC = () => {
                               type="text" 
                               placeholder="Enter Friend's Code" 
                               value={joinCode}
-                              onChange={(e) => setJoinCode(e.target.value)}
+                              onChange={(e) => setJoinCode(e.target.value.replace(/\s/g, ''))} 
                               className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs text-center font-mono outline-none focus:border-indigo-500 transition-colors"
                             />
                             <button onClick={joinGame} className="w-full py-3 bg-white text-slate-900 font-black rounded-xl text-xs uppercase tracking-widest active:scale-95">
