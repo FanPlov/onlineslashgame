@@ -21,8 +21,6 @@ const INITIAL_GAME_STATE: GameState = {
 };
 
 const MUSIC_URL = "https://cdn.pixabay.com/download/audio/2022/11/22/audio_febc508520.mp3?filename=abstract-fashion-pop-131283.mp3";
-// Звук клика, похожий на Minecraft/Retro UI
-const CLICK_URL = "https://cdn.pixabay.com/download/audio/2021/08/04/audio_bb630cc098.mp3?filename=click-menu-app-147355.mp3";
 
 // Icons
 const IconRules = () => <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20M4 19.5V5A2.5 2.5 0 0 1 6.5 2.5H20v14.5H6.5a2.5 2.5 0 0 0-2.5 2.5z" /></svg>;
@@ -81,7 +79,6 @@ const App: React.FC = () => {
   const [showPlayMenu, setShowPlayMenu] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const clickAudioRef = useRef<HTMLAudioElement | null>(null);
   const t = translations[language];
   const gameState = history[currentStep];
 
@@ -90,12 +87,8 @@ const App: React.FC = () => {
     audioRef.current.loop = true;
     audioRef.current.volume = 0.15;
 
-    clickAudioRef.current = new Audio(CLICK_URL);
-    clickAudioRef.current.volume = 0.6;
-
     return () => {
       audioRef.current?.pause();
-      clickAudioRef.current = null;
     };
   }, []);
 
@@ -137,7 +130,6 @@ const App: React.FC = () => {
 
     onlineManager.onData((data: OnlineEvent) => {
       if (data.type === 'MOVE') {
-        playClick(); // Sound on remote move
         executeRemoteMove(data.index);
       } else if (data.type === 'RESET') {
         resetGameLocally();
@@ -172,7 +164,6 @@ const App: React.FC = () => {
         try {
           const moveIndex = await getBotMove(gameState);
           if (!ignore && moveIndex !== null) {
-            playClick(); // Sound on Bot move
             executeBotMoveInGame(moveIndex);
           }
         } catch (e) {
@@ -187,20 +178,12 @@ const App: React.FC = () => {
     return () => { ignore = true; };
   }, [gameState, status, mode]);
 
-  const playClick = () => {
-    if (isSoundOn && clickAudioRef.current) {
-        clickAudioRef.current.currentTime = 0;
-        clickAudioRef.current.play().catch(() => {});
-    }
-  };
-
   const handleTimeOut = (winner: Player) => {
     updateGameState({ ...gameState, winner, winReason: "Time Out" });
     setStatus(GameStatus.FINISHED);
   };
 
   const startGame = (selectedMode: GameMode) => {
-    playClick();
     setMode(selectedMode);
     setHistory([INITIAL_GAME_STATE]);
     setCurrentStep(0);
@@ -213,7 +196,6 @@ const App: React.FC = () => {
   };
 
   const startOnlineGame = async (type: 'HOST' | 'JOIN') => {
-    playClick();
     setShowPlayMenu(false);
     setShowOnlineMenu(true);
     setMode(GameMode.PVP);
@@ -242,7 +224,6 @@ const App: React.FC = () => {
   };
 
   const joinGame = () => {
-    playClick();
     if (joinCode) {
       onlineManager.connectTo(joinCode);
       // Wait for onConnect callback to switch status
@@ -252,7 +233,6 @@ const App: React.FC = () => {
   };
 
   const handleBackToMenu = () => {
-    playClick();
     setStatus(GameStatus.MENU);
     if (isOnline) {
       onlineManager.destroy();
@@ -272,7 +252,6 @@ const App: React.FC = () => {
   };
 
   const resetGame = () => {
-    playClick();
     resetGameLocally();
     if (isOnline) {
       onlineManager.sendReset();
@@ -322,7 +301,6 @@ const App: React.FC = () => {
     if (mode === GameMode.BOT && gameState.currentPlayer === Player.TWO) return;
 
     if (isValidMove(gameState, index, gameState.currentPlayer)) {
-      playClick(); // Play sound on move
       const newState = executeMove(gameState, index);
       updateGameState(newState);
       
@@ -335,7 +313,6 @@ const App: React.FC = () => {
   };
 
   const handleBlockAction = () => {
-    playClick();
     if (blockMenuCell === null) return;
     if (isOnline) return; 
 
@@ -346,7 +323,6 @@ const App: React.FC = () => {
   };
 
   const handleRemoveAction = (subOption?: 'KEEP_V' | 'KEEP_H') => {
-    playClick();
     if (blockMenuCell === null) return;
     if (isOnline) return;
 
@@ -355,7 +331,6 @@ const App: React.FC = () => {
   };
 
   const handleUndo = () => {
-    playClick();
     if (isOnline) return;
     // Disable Undo during Bot turn to prevent state corruption
     if (mode === GameMode.BOT && gameState.currentPlayer === Player.TWO) return;
@@ -366,7 +341,6 @@ const App: React.FC = () => {
   };
 
   const handleRedo = () => {
-    playClick();
     if (isOnline) return;
     if (currentStep >= history.length - 1 || gameState.winner) return;
     setCurrentStep(prev => prev + 1);
@@ -385,13 +359,11 @@ const App: React.FC = () => {
   };
 
   const toggleFlip = () => {
-    playClick();
     setIsFlipped(!isFlipped);
     setShowMenu(false);
   };
 
   const copyHostId = () => {
-    playClick();
     navigator.clipboard.writeText(hostId);
   };
 
@@ -456,14 +428,14 @@ const App: React.FC = () => {
               <div className="flex flex-col gap-4 w-full relative">
                 {!showPlayMenu && !showOnlineMenu ? (
                   <>
-                    <button onClick={() => { playClick(); setShowPlayMenu(true); }} className="group relative w-full py-5 bg-white text-slate-950 font-black rounded-3xl overflow-hidden active:scale-95 transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+                    <button onClick={() => { setShowPlayMenu(true); }} className="group relative w-full py-5 bg-white text-slate-950 font-black rounded-3xl overflow-hidden active:scale-95 transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)]">
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                       <span className="relative text-lg tracking-widest uppercase flex items-center justify-center gap-3"><IconPlay /> PLAY</span>
                     </button>
                     
                     <div className="grid grid-cols-2 gap-4">
-                      <button onClick={() => { playClick(); setShowRules(true); }} className="py-4 glass rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] active:scale-95 transition-transform hover:bg-white/10 flex items-center justify-center gap-2 shadow-lg"><IconRules /> {t.rules}</button>
-                      <button onClick={() => { playClick(); setShowSettings(true); }} className="py-4 glass rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] active:scale-95 transition-transform hover:bg-white/10 flex items-center justify-center gap-2 shadow-lg"><IconSettings /> {t.settings}</button>
+                      <button onClick={() => { setShowRules(true); }} className="py-4 glass rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] active:scale-95 transition-transform hover:bg-white/10 flex items-center justify-center gap-2 shadow-lg"><IconRules /> {t.rules}</button>
+                      <button onClick={() => { setShowSettings(true); }} className="py-4 glass rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] active:scale-95 transition-transform hover:bg-white/10 flex items-center justify-center gap-2 shadow-lg"><IconSettings /> {t.settings}</button>
                     </div>
                   </>
                 ) : showOnlineMenu ? (
@@ -503,7 +475,7 @@ const App: React.FC = () => {
                         )}
                       </div>
                     )}
-                    <button onClick={() => { playClick(); setShowOnlineMenu(false); onlineManager.destroy(); setHostId(''); setMyPlayer(null); }} className="mt-2 py-3 text-slate-500 font-bold text-[10px] uppercase tracking-widest hover:text-white">
+                    <button onClick={() => { setShowOnlineMenu(false); onlineManager.destroy(); setHostId(''); setMyPlayer(null); }} className="mt-2 py-3 text-slate-500 font-bold text-[10px] uppercase tracking-widest hover:text-white">
                       Back
                     </button>
                   </div>
@@ -518,10 +490,10 @@ const App: React.FC = () => {
                     <button onClick={() => startGame(GameMode.BLOCK_MODE)} className="w-full py-4 bg-slate-800 border border-amber-500/50 text-amber-500 font-black rounded-2xl text-xs uppercase tracking-widest active:scale-95 transition-transform shadow-lg">
                       {t.playSlashMode}
                     </button>
-                    <button onClick={() => { playClick(); setShowOnlineMenu(true); }} className="w-full py-4 bg-indigo-900 border border-indigo-500/30 text-indigo-300 font-black rounded-2xl text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 hover:bg-indigo-800 transition-colors">
+                    <button onClick={() => { setShowOnlineMenu(true); }} className="w-full py-4 bg-indigo-900 border border-indigo-500/30 text-indigo-300 font-black rounded-2xl text-xs uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 hover:bg-indigo-800 transition-colors">
                       Online <IconGlobe />
                     </button>
-                    <button onClick={() => { playClick(); setShowPlayMenu(false); }} className="mt-2 py-3 text-slate-500 font-bold text-[10px] uppercase tracking-widest hover:text-white">
+                    <button onClick={() => { setShowPlayMenu(false); }} className="mt-2 py-3 text-slate-500 font-bold text-[10px] uppercase tracking-widest hover:text-white">
                       Back
                     </button>
                   </div>
@@ -529,11 +501,10 @@ const App: React.FC = () => {
               </div>
           </div>
           
-          {/* Footer - Fixed at bottom via Flex - Raised higher (pb-16) */}
           <div className="flex gap-4 mt-auto pb-12 z-10">
-             <a href="#" onClick={playClick} className="w-12 h-12 bg-slate-900 border border-white/10 rounded-2xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shadow-lg active:scale-95"><IconTelegram /></a>
-             <a href="#" onClick={playClick} className="w-12 h-12 bg-slate-900 border border-white/10 rounded-2xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shadow-lg active:scale-95"><IconMail /></a>
-             <a href="#" onClick={playClick} className="w-12 h-12 bg-slate-900 border border-white/10 rounded-2xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shadow-lg active:scale-95"><IconCoffee /></a>
+             <a href="#" className="w-12 h-12 bg-slate-900 border border-white/10 rounded-2xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shadow-lg active:scale-95"><IconTelegram /></a>
+             <a href="#" className="w-12 h-12 bg-slate-900 border border-white/10 rounded-2xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shadow-lg active:scale-95"><IconMail /></a>
+             <a href="#" className="w-12 h-12 bg-slate-900 border border-white/10 rounded-2xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shadow-lg active:scale-95"><IconCoffee /></a>
           </div>
 
           <div className="absolute bottom-4 left-0 right-0 text-center z-0">
@@ -550,7 +521,7 @@ const App: React.FC = () => {
               </h2>
               <div className={`h-0.5 w-6 rounded-full shadow-[0_0_8px_rgba(99,102,241,0.5)] ${isOnline ? 'bg-green-500' : (mode === GameMode.BOT ? 'bg-emerald-500' : 'bg-indigo-500')}`} />
             </div>
-            <button onClick={() => { playClick(); setShowSettings(true); }} className="p-2 -mr-2 text-slate-400 hover:text-white transition-colors active:scale-90"><IconSettings /></button>
+            <button onClick={() => { setShowSettings(true); }} className="p-2 -mr-2 text-slate-400 hover:text-white transition-colors active:scale-90"><IconSettings /></button>
           </header>
           
           <main className="flex-1 flex flex-col items-center justify-between py-6 px-4 gap-2 overflow-hidden relative z-0">
@@ -573,7 +544,6 @@ const App: React.FC = () => {
                 ))}
               </div>
               
-              {/* Online Wait Overlay */}
               {isOnline && isWaitingForOpponent && (
                  <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 rounded-[1.5rem] animate-in fade-in">
                     <div className="text-center p-6">
@@ -583,13 +553,11 @@ const App: React.FC = () => {
                  </div>
               )}
 
-              {/* Context Menu Overlay - Darker Opaque Background */}
               {blockMenuCell !== null && !isOnline && (
                 <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/50 rounded-[1.5rem] animate-in fade-in duration-200">
                   <div className="bg-slate-900 border border-slate-700 p-4 rounded-2xl shadow-2xl flex flex-col gap-2 w-[85%] max-w-[220px]">
                     <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mb-1">Actions</h4>
                     
-                    {/* BLOCK Actions */}
                     {gameState.board[blockMenuCell] === SymbolType.BLOCK ? (
                       <button onClick={handleBlockAction} disabled={!isCurrentBlockAvailable()} className={`py-3 font-black rounded-xl text-[9px] uppercase tracking-widest active:scale-95 transition-transform ${isCurrentBlockAvailable() ? 'bg-amber-500 text-slate-900' : 'bg-slate-800 text-slate-500'}`}>
                         Neutralize Block
@@ -600,20 +568,16 @@ const App: React.FC = () => {
                       </button>
                     )}
 
-                    {/* REMOVE Actions */}
                     {gameState.board[blockMenuCell] !== null && gameState.board[blockMenuCell] !== SymbolType.BLOCK && (
                       <>
                         {showPlusOptions ? (
                           <div className="grid grid-cols-2 gap-2">
-                             {/* Keep Horizontal means Remove Vertical */}
                              <button onClick={() => handleRemoveAction('KEEP_H')} className="py-2 bg-rose-500 text-white font-bold rounded-lg text-[8px] uppercase">Remove (|)</button>
-                             {/* Keep Vertical means Remove Horizontal */}
                              <button onClick={() => handleRemoveAction('KEEP_V')} className="py-2 bg-rose-500 text-white font-bold rounded-lg text-[8px] uppercase">Remove (—)</button>
                           </div>
                         ) : (
                           <button 
                             onClick={() => {
-                              playClick();
                               if (gameState.board[blockMenuCell] === SymbolType.PLUS) {
                                 setShowPlusOptions(true);
                               } else {
@@ -629,7 +593,7 @@ const App: React.FC = () => {
                       </>
                     )}
 
-                    <button onClick={() => { playClick(); setBlockMenuCell(null); }} className="py-3 text-slate-500 font-bold text-[8px] uppercase tracking-widest active:scale-95 transition-transform hover:text-slate-300">Cancel</button>
+                    <button onClick={() => { setBlockMenuCell(null); }} className="py-3 text-slate-500 font-bold text-[8px] uppercase tracking-widest active:scale-95 transition-transform hover:text-slate-300">Cancel</button>
                   </div>
                 </div>
               )}
@@ -648,7 +612,6 @@ const App: React.FC = () => {
               )}
             </div>
 
-            {/* Bottom Player Info */}
             {isFlipped ? renderPlayerUI(Player.TWO) : renderPlayerUI(Player.ONE)}
 
           </main>
@@ -656,7 +619,7 @@ const App: React.FC = () => {
           <footer className="glass border-t border-white/10 px-6 pt-5 pb-10 z-[60] shadow-[0_-10px_30px_rgba(0,0,0,0.5)] w-full">
             <div className="flex items-center justify-between max-w-md mx-auto">
               <button 
-                onClick={() => { playClick(); setShowMenu(true); }} 
+                onClick={() => { setShowMenu(true); }} 
                 className="flex flex-col items-center gap-1 group active:scale-95 transition-transform p-2 cursor-pointer touch-manipulation"
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
@@ -682,7 +645,7 @@ const App: React.FC = () => {
               </div>
               
               <button 
-                onClick={() => { playClick(); setStatus(GameStatus.PAUSED); }} 
+                onClick={() => { setStatus(GameStatus.PAUSED); }} 
                 className="flex flex-col items-center gap-1 group active:scale-95 transition-transform p-2 cursor-pointer touch-manipulation"
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
@@ -694,7 +657,6 @@ const App: React.FC = () => {
         </>
       )}
 
-      {/* Menu Modal (In-Game) */}
       {showMenu && (
         <div className="fixed inset-0 z-[250] bg-slate-950/98 flex items-center justify-center p-8 backdrop-blur-sm">
            <div className="bg-slate-900 border border-slate-700 w-full max-w-xs rounded-2xl p-6 shadow-2xl space-y-3">
@@ -702,12 +664,12 @@ const App: React.FC = () => {
               
               {!showTimeSettings ? (
                 <>
-                  <button onClick={() => { playClick(); setShowMenu(false); }} className="w-full py-4 bg-white text-slate-950 font-black rounded-xl transition-all uppercase tracking-widest text-[11px] shadow-lg active:scale-95">{t.resume}</button>
+                  <button onClick={() => { setShowMenu(false); }} className="w-full py-4 bg-white text-slate-950 font-black rounded-xl transition-all uppercase tracking-widest text-[11px] shadow-lg active:scale-95">{t.resume}</button>
                   <div className="grid grid-cols-2 gap-2">
                     <button onClick={toggleFlip} className="py-4 bg-slate-800 text-white font-bold rounded-xl transition-all uppercase tracking-widest text-[10px] shadow-lg active:scale-95 flex flex-col items-center justify-center gap-2">
                       <IconRotate /> Flip Board
                     </button>
-                    <button onClick={() => { playClick(); setShowTimeSettings(true); }} className="py-4 bg-slate-800 text-white font-bold rounded-xl transition-all uppercase tracking-widest text-[10px] shadow-lg active:scale-95 flex flex-col items-center justify-center gap-2">
+                    <button onClick={() => { setShowTimeSettings(true); }} className="py-4 bg-slate-800 text-white font-bold rounded-xl transition-all uppercase tracking-widest text-[10px] shadow-lg active:scale-95 flex flex-col items-center justify-center gap-2">
                       <IconClock /> Time Set
                     </button>
                   </div>
@@ -736,7 +698,7 @@ const App: React.FC = () => {
                       <span>2m</span>
                     </div>
                   </div>
-                  <button onClick={() => { playClick(); setShowTimeSettings(false); }} className="w-full py-3 bg-indigo-600 text-white font-black rounded-xl uppercase tracking-widest text-[10px] mt-4">Save</button>
+                  <button onClick={() => { setShowTimeSettings(false); }} className="w-full py-3 bg-indigo-600 text-white font-black rounded-xl uppercase tracking-widest text-[10px] mt-4">Save</button>
                 </div>
               )}
            </div>
@@ -746,14 +708,14 @@ const App: React.FC = () => {
       {showSettings && (
         <div className="fixed inset-0 z-[210] bg-slate-950/98 flex items-center justify-center p-6 backdrop-blur-sm">
           <div className="bg-slate-900 border border-slate-700 w-full max-w-xs rounded-2xl p-6 relative shadow-2xl">
-            <button onClick={() => { playClick(); setShowSettings(false); }} className="absolute top-5 right-5 text-slate-500 hover:text-white transition-colors"><IconX /></button>
+            <button onClick={() => { setShowSettings(false); }} className="absolute top-5 right-5 text-slate-500 hover:text-white transition-colors"><IconX /></button>
             <h3 className="text-xl font-black text-white mb-8 uppercase tracking-tighter">{t.settings}</h3>
             <div className="space-y-8">
               <div>
                 <span className="text-slate-500 text-[8px] font-black uppercase tracking-widest block mb-3">{t.lang}</span>
                 <div className="grid grid-cols-3 gap-2">
                   {[Language.RU, Language.EN, Language.UZ].map(l => (
-                    <button key={l} onClick={() => { playClick(); setLanguage(l); }} className={`py-3 text-[10px] font-black rounded-lg transition-all ${language === l ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/30' : 'bg-slate-800 text-slate-500 hover:bg-slate-700'}`}>{l}</button>
+                    <button key={l} onClick={() => { setLanguage(l); }} className={`py-3 text-[10px] font-black rounded-lg transition-all ${language === l ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/30' : 'bg-slate-800 text-slate-500 hover:bg-slate-700'}`}>{l}</button>
                   ))}
                 </div>
               </div>
@@ -761,8 +723,8 @@ const App: React.FC = () => {
               <div>
                 <span className="text-slate-500 text-[8px] font-black uppercase tracking-widest block mb-3">{t.sound}</span>
                 <div className="grid grid-cols-2 gap-2">
-                   <button onClick={() => { playClick(); setIsSoundOn(true); }} className={`py-3 text-[10px] font-black rounded-lg transition-all ${isSoundOn ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/30' : 'bg-slate-800 text-slate-500 hover:bg-slate-700'}`}>{t.on}</button>
-                   <button onClick={() => { playClick(); setIsSoundOn(false); }} className={`py-3 text-[10px] font-black rounded-lg transition-all ${!isSoundOn ? 'bg-slate-600 text-white' : 'bg-slate-800 text-slate-500 hover:bg-slate-700'}`}>{t.off}</button>
+                   <button onClick={() => { setIsSoundOn(true); }} className={`py-3 text-[10px] font-black rounded-lg transition-all ${isSoundOn ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/30' : 'bg-slate-800 text-slate-500 hover:bg-slate-700'}`}>{t.on}</button>
+                   <button onClick={() => { setIsSoundOn(false); }} className={`py-3 text-[10px] font-black rounded-lg transition-all ${!isSoundOn ? 'bg-slate-600 text-white' : 'bg-slate-800 text-slate-500 hover:bg-slate-700'}`}>{t.off}</button>
                 </div>
               </div>
             </div>
@@ -773,21 +735,20 @@ const App: React.FC = () => {
       {showRules && (
         <div className="fixed inset-0 z-[300] bg-slate-950/98 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-slate-900 border border-slate-700 w-full max-w-md rounded-3xl relative shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
-            {/* Sticky Header */}
             <div className="flex-none p-6 border-b border-white/5 bg-slate-900 z-10 sticky top-0">
                <div className="flex items-center justify-between mb-6">
                  <h3 className="text-2xl font-black text-white uppercase tracking-tighter">{t.rulesTitle}</h3>
-                 <button onClick={() => { playClick(); setShowRules(false); }} className="p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors active:scale-90"><IconX /></button>
+                 <button onClick={() => { setShowRules(false); }} className="p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors active:scale-90"><IconX /></button>
                </div>
                <div className="grid grid-cols-2 bg-slate-800 p-1 rounded-xl">
                  <button 
-                   onClick={() => { playClick(); setRulesTab('CLASSIC'); }} 
+                   onClick={() => { setRulesTab('CLASSIC'); }} 
                    className={`py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${rulesTab === 'CLASSIC' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-500 hover:text-slate-300'}`}
                  >
                    {t.tabClassic}
                  </button>
                  <button 
-                   onClick={() => { playClick(); setRulesTab('MODE'); }} 
+                   onClick={() => { setRulesTab('MODE'); }} 
                    className={`py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${rulesTab === 'MODE' ? 'bg-amber-500 text-slate-900 shadow-md' : 'text-slate-500 hover:text-slate-300'}`}
                  >
                    {t.tabMode}
@@ -795,7 +756,6 @@ const App: React.FC = () => {
                </div>
             </div>
 
-            {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6 text-[11px] leading-relaxed text-slate-300">
               {rulesTab === 'CLASSIC' ? (
                  <>
@@ -842,7 +802,7 @@ const App: React.FC = () => {
       {status === GameStatus.PAUSED && (
         <div className="fixed inset-0 z-[300] bg-slate-950/98 flex flex-col items-center justify-center px-6 backdrop-blur-sm">
            <h2 className="text-5xl font-black text-white uppercase tracking-tighter orbitron italic mb-12">{t.paused}</h2>
-           <button onClick={() => { playClick(); setStatus(GameStatus.PLAYING); }} className="group relative px-10 py-5 bg-white text-slate-950 font-black rounded-2xl flex items-center gap-4 transition-all active:scale-95 shadow-[0_20px_50px_rgba(255,255,255,0.1)]">
+           <button onClick={() => { setStatus(GameStatus.PLAYING); }} className="group relative px-10 py-5 bg-white text-slate-950 font-black rounded-2xl flex items-center gap-4 transition-all active:scale-95 shadow-[0_20px_50px_rgba(255,255,255,0.1)]">
              <IconPlay /> <span className="text-lg tracking-widest uppercase">{t.resume}</span>
            </button>
         </div>
