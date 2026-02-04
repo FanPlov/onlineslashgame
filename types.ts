@@ -20,7 +20,8 @@ export enum Player {
 
 export enum GameMode {
   PVP = 'PVP',
-  BLOCK_MODE = 'BLOCK_MODE'
+  BLOCK_MODE = 'BLOCK_MODE',
+  BOT = 'BOT'
 }
 
 export enum GameStatus {
